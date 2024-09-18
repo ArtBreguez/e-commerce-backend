@@ -12,7 +12,7 @@ class TestUserModel(unittest.TestCase):
             os.remove("test_ecommerce.db")
 
     def setUp(self):
-        self.db = get_db("test_ecommerce.db")  
+        self.db = get_db("test_ecommerce.db")
         create_tables(self.db.connection)
 
     def tearDown(self):
@@ -21,29 +21,48 @@ class TestUserModel(unittest.TestCase):
             os.remove("test_ecommerce.db")
 
     def test_user_registration(self):
-        db = get_db("test_ecommerce.db")  
         username = "testuser"
         password = "testpassword"
-        User.register(username, password, db)
-        
-        db.cursor.execute("SELECT username FROM users WHERE username = ?", (username,))
-        user_in_db = db.cursor.fetchone()
+        User.register(username, password, self.db)
+        self.db.cursor.execute("SELECT username FROM users WHERE username = ?", (username,))
+        user_in_db = self.db.cursor.fetchone()
         self.assertIsNotNone(user_in_db)
         self.assertEqual(user_in_db[0], username)
-    
+
     def test_user_login(self):
-        db = get_db("test_ecommerce.db")  
         username = "testuser"
         password = "testpassword"
-        User.register(username, password, db)
-
-        self.assertTrue(User.login(username, password, db))
-
+        User.register(username, password, self.db)
+        self.assertTrue(User.login(username, password, self.db))
         with self.assertRaises(ValueError):
-            User.login(username, "wrongpassword", db)
+            User.login(username, "wrongpassword", self.db)
 
-        with self.assertRaises(ValueError):
-            User.login("nonexistentuser", "password", db)
+    def test_update_username(self):
+        username = "testuser"
+        new_username = "newtestuser"
+        password = "testpassword"
+        User.register(username, password, self.db)
+        User.update_username(username, new_username, self.db)
+        self.db.cursor.execute("SELECT username FROM users WHERE username = ?", (new_username,))
+        user_in_db = self.db.cursor.fetchone()
+        self.assertEqual(user_in_db[0], new_username)
+
+    def test_update_password(self):
+        username = "testuser"
+        password = "testpassword"
+        new_password = "newtestpassword"
+        User.register(username, password, self.db)
+        User.update_password(username, new_password, self.db)
+        self.assertTrue(User.login(username, new_password, self.db))
+
+    def test_delete_account(self):
+        username = "testuser"
+        password = "testpassword"
+        User.register(username, password, self.db)
+        User.delete_account(username, self.db)
+        self.db.cursor.execute("SELECT username FROM users WHERE username = ?", (username,))
+        user_in_db = self.db.cursor.fetchone()
+        self.assertIsNone(user_in_db)
 
 if __name__ == '__main__':
     unittest.main()

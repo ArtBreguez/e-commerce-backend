@@ -36,3 +36,28 @@ class User:
                 raise ValueError('Invalid password')
         else:
             raise ValueError('User not found')
+
+    @staticmethod
+    def update_username(current_username, new_username, db=None):
+        if db is None:
+            db = get_db()
+        try:
+            db.cursor.execute("UPDATE users SET username = ? WHERE username = ?", (new_username, current_username))
+            db.connection.commit()
+        except db.connection.IntegrityError:
+            raise ValueError('New username is already taken')
+
+    @staticmethod
+    def update_password(username, new_password, db=None):
+        if db is None:
+            db = get_db()
+        new_password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        db.cursor.execute("UPDATE users SET password_hash = ? WHERE username = ?", (new_password_hash, username))
+        db.connection.commit()
+
+    @staticmethod
+    def delete_account(username, db=None):
+        if db is None:
+            db = get_db()
+        db.cursor.execute("DELETE FROM users WHERE username = ?", (username,))
+        db.connection.commit()
