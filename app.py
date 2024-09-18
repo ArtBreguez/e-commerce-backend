@@ -1,7 +1,8 @@
-from models import User, Database
+from ecommerce.models import User
+from ecommerce.db import get_db
 
 def main():
-    db = Database()
+    db = get_db()
     
     print("Welcome to the Simple E-commerce Backend!")
     
@@ -12,7 +13,7 @@ def main():
             username = input("Enter a username: ")
             password = input("Enter a password: ")
             try:
-                User.register(db, username, password)
+                User.register(username, password)
                 print(f"User {username} registered successfully!")
             except ValueError as e:
                 print(e)
@@ -21,7 +22,7 @@ def main():
             username = input("Enter your username: ")
             password = input("Enter your password: ")
             try:
-                if User.login(db, username, password):
+                if User.login(username, password):
                     print(f"User {username} logged in successfully!")
             except ValueError as e:
                 print(e)
