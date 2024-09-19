@@ -12,11 +12,15 @@ def create_tables(connection):
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         username TEXT UNIQUE,
                         password_hash TEXT)''')
+    
     cursor.execute('''CREATE TABLE IF NOT EXISTS products (
                                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 name TEXT,
                                 price REAL,
-                                description TEXT)''')
+                                description TEXT,
+                                user_id INTEGER,
+                                FOREIGN KEY(user_id) REFERENCES users(id))''')
+    
     cursor.execute('''CREATE TABLE IF NOT EXISTS carts (
                                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 user_id INTEGER,

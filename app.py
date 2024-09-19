@@ -2,6 +2,10 @@ from ecommerce.models import User
 from ecommerce.db import get_db
 from prompt_toolkit.shortcuts import input_dialog, yes_no_dialog, button_dialog, radiolist_dialog
 from prompt_toolkit.styles import Style
+from ecommerce.product import Product 
+import requests
+from io import BytesIO
+from PIL import Image
 
 style = Style.from_dict({
     'dialog': 'bg:#5f819d #ffffff',
@@ -14,6 +18,8 @@ def show_main_menu(logged_in_user):
             ("update_username", "Update Username"),
             ("update_password", "Change Password"),
             ("delete_account", "Delete Account"),
+            ("view_products", "View Products"),  
+            ("create_product", "Create Product"),
             ("logout", "Logout"),
         ]
     else:
@@ -146,6 +152,132 @@ def delete_account(logged_in_user):
         return None
     return logged_in_user
 
+# Função para criar um produto
+def create_product(logged_in_user):
+    name = input_dialog(
+        title="Create Product",
+        text="Enter the product name: "
+    ).run()
+    
+    if name:
+        price = input_dialog(
+            title="Create Product",
+            text="Enter the product price: "
+        ).run()
+        description = input_dialog(
+            title="Create Product",
+            text="Enter the product description: "
+        ).run()
+
+        if price and description:
+            try:
+                Product.create_product(name, float(price), description, logged_in_user)
+                button_dialog(
+                    title="Success",
+                    text=f"Product {name} created successfully!",
+                    buttons=[("OK", True)]
+                ).run()
+            except Exception as e:
+                button_dialog(
+                    title="Error",
+                    text=str(e),
+                    buttons=[("OK", True)]
+                ).run()
+
+def view_products(logged_in_user):
+    products = Product.get_all_products()
+    
+    if products:
+        product_list = "\n".join([f"{p[1]} - ${p[2]} (ID: {p[0]})" for p in products])
+        product_selected = button_dialog(
+            title="Product List",
+            text=f"Available products:\n\n{product_list}\n\nSelect a product to view details.",
+            buttons=[(p[1], p[0]) for p in products] + [("Back", None)]
+        ).run()
+
+        if product_selected:
+            product = Product.get_product_by_id(product_selected)
+            if product:
+                creator = product[4]  
+                product_details = f"Name: {product[1]}\nPrice: ${product[2]}\nDescription: {product[3]}\nCreated by: {creator}"
+
+                if product[5] == logged_in_user:  
+                    action = button_dialog(
+                        title="Product Details",
+                        text=f"{product_details}\n\nWhat would you like to do?",
+                        buttons=[("Update", "update"), ("Delete", "delete"), ("Back", None)]
+                    ).run()
+
+                    if action == "update":
+                        update_product(product_selected)
+                    elif action == "delete":
+                        delete_product(product_selected)
+                else:
+                    button_dialog(
+                        title="Product Details",
+                        text=product_details,
+                        buttons=[("Back", True)]
+                    ).run()
+    else:
+        button_dialog(
+            title="No Products",
+            text="No products found!",
+            buttons=[("OK", True)]
+        ).run()
+
+
+
+def update_product(product_id):
+    name = input_dialog(
+        title="Update Product",
+        text="Enter the new name (or leave blank to skip): "
+    ).run()
+    price = input_dialog(
+        title="Update Product",
+        text="Enter the new price (or leave blank to skip): "
+    ).run()
+    description = input_dialog(
+        title="Update Product",
+        text="Enter the new description (or leave blank to skip): "
+    ).run()
+
+    if name or price or description:
+        try:
+            Product.update_product(product_id, name=name, price=float(price) if price else None, 
+                                   description=description)
+            button_dialog(
+                title="Success",
+                text="Product updated successfully!",
+                buttons=[("OK", True)]
+            ).run()
+        except Exception as e:
+            button_dialog(
+                title="Error",
+                text=str(e),
+                buttons=[("OK", True)]
+            ).run()
+
+def delete_product(product_id):
+    confirmation = yes_no_dialog(
+        title="Confirm Deletion",
+        text="Are you sure you want to delete this product?"
+    ).run()
+
+    if confirmation:
+        try:
+            Product.delete_product(product_id)
+            button_dialog(
+                title="Success",
+                text="Product deleted successfully!",
+                buttons=[("OK", True)]
+            ).run()
+        except Exception as e:
+            button_dialog(
+                title="Error",
+                text=str(e),
+                buttons=[("OK", True)]
+            ).run()
+
 def main():
     db = get_db()
     logged_in_user = None
@@ -168,6 +300,12 @@ def main():
         elif action == 'delete_account' and logged_in_user:
             logged_in_user = delete_account(logged_in_user)
 
+        elif action == 'view_products' and logged_in_user:
+            view_products(logged_in_user)  
+
+        elif action == 'create_product' and logged_in_user:
+            create_product(logged_in_user) 
+
         elif action == 'logout' and logged_in_user:
             button_dialog(
                 title="Logout",
@@ -184,6 +322,7 @@ def main():
                 buttons=[("OK", True)]
             ).run()
             break
+
 
 if __name__ == "__main__":
     main()
