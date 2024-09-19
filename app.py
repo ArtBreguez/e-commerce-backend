@@ -1,6 +1,6 @@
 from ecommerce.models import User
 from ecommerce.db import get_db
-from prompt_toolkit.shortcuts import input_dialog, yes_no_dialog, button_dialog
+from prompt_toolkit.shortcuts import input_dialog, yes_no_dialog, button_dialog, radiolist_dialog
 from prompt_toolkit.styles import Style
 
 style = Style.from_dict({
@@ -11,24 +11,26 @@ style = Style.from_dict({
 def show_main_menu(logged_in_user):
     if logged_in_user:
         options = [
-            ("Update Username", "update_username"),
-            ("Update Password", "update_password"),
-            ("Delete Account", "delete_account"),
-            ("Logout", "logout"),
+            ("update_username", "Update Username"),
+            ("update_password", "Change Password"),
+            ("delete_account", "Delete Account"),
+            ("logout", "Logout"),
         ]
     else:
         options = [
-            ("Register", "register"),
-            ("Login", "login"),
-            ("Quit", "quit"),
+            ("register", "Register"),
+            ("login", "Login"),
         ]
     
-    result = button_dialog(
+    result = radiolist_dialog(
         title="Main Menu",
         text="Please choose an option:",
-        buttons=[(opt[0], opt[1]) for opt in options],
-        style=None, 
+        values=[(opt[0], opt[1]) for opt in options],  
+        cancel_text="Quit"  
     ).run()
+
+    if result is None:
+        exit()
 
     return result
 
