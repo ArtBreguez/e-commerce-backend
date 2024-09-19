@@ -6,6 +6,7 @@ from ecommerce.product import Product
 import requests
 from io import BytesIO
 from PIL import Image
+from prompt_toolkit.formatted_text import HTML
 
 style = Style.from_dict({
     'dialog': 'bg:#5f819d #ffffff',
@@ -183,7 +184,6 @@ def create_product(logged_in_user):
                     text=str(e),
                     buttons=[("OK", True)]
                 ).run()
-from prompt_toolkit.formatted_text import HTML
 
 def view_products(logged_in_user):
     products = Product.get_all_products()
@@ -194,11 +194,11 @@ def view_products(logged_in_user):
         product_selected = radiolist_dialog(
             title="Product List",
             text="Available products:\n\nSelect a product to view details:",
-            values=product_list, 
+            values=product_list,  
             cancel_text="Back"  
         ).run()
 
-        if product_selected is not None:  
+        if product_selected is not None: 
             product = Product.get_product_by_id(int(product_selected))
             if product:
                 creator = product[4]  
@@ -207,7 +207,7 @@ def view_products(logged_in_user):
                                    f"Description: {product[3]}\n"
                                    f"Created by: {creator}")
 
-                if product[5] == logged_in_user:
+                if creator == logged_in_user:
                     action = button_dialog(
                         title="Product Details",
                         text=f"{product_details}\n\nWhat would you like to do?",
@@ -215,9 +215,9 @@ def view_products(logged_in_user):
                     ).run()
 
                     if action == "update":
-                        update_product(int(product_selected))
+                        update_product(int(product_selected))  
                     elif action == "delete":
-                        delete_product(int(product_selected))
+                        delete_product(int(product_selected)) 
                 else:
                     button_dialog(
                         title="Product Details",
