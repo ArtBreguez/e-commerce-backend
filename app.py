@@ -1,4 +1,4 @@
-from ecommerce.models import User
+from ecommerce.user import User
 from ecommerce.db import get_db
 from prompt_toolkit.shortcuts import input_dialog, yes_no_dialog, button_dialog, radiolist_dialog
 from prompt_toolkit.styles import Style
@@ -24,8 +24,8 @@ def show_main_menu(logged_in_user):
         ]
     else:
         options = [
-            ("register", "Register"),
             ("login", "Login"),
+            ("register", "Register"),
         ]
     
     result = radiolist_dialog(
@@ -152,7 +152,6 @@ def delete_account(logged_in_user):
         return None
     return logged_in_user
 
-# Função para criar um produto
 def create_product(logged_in_user):
     name = input_dialog(
         title="Create Product",
@@ -171,7 +170,8 @@ def create_product(logged_in_user):
 
         if price and description:
             try:
-                Product.create_product(name, float(price), description, logged_in_user)
+                user_id = User.get_user_id(logged_in_user)
+                Product.create_product(name, float(price), description, user_id)
                 button_dialog(
                     title="Success",
                     text=f"Product {name} created successfully!",
@@ -183,25 +183,31 @@ def create_product(logged_in_user):
                     text=str(e),
                     buttons=[("OK", True)]
                 ).run()
+from prompt_toolkit.formatted_text import HTML
 
 def view_products(logged_in_user):
     products = Product.get_all_products()
     
     if products:
-        product_list = "\n".join([f"{p[1]} - ${p[2]} (ID: {p[0]})" for p in products])
-        product_selected = button_dialog(
+        product_list = [(str(p[0]), HTML(f'{p[1]} - ${p[2]}')) for p in products]  
+        
+        product_selected = radiolist_dialog(
             title="Product List",
-            text=f"Available products:\n\n{product_list}\n\nSelect a product to view details.",
-            buttons=[(p[1], p[0]) for p in products] + [("Back", None)]
+            text="Available products:\n\nSelect a product to view details:",
+            values=product_list, 
+            cancel_text="Back"  
         ).run()
 
-        if product_selected:
-            product = Product.get_product_by_id(product_selected)
+        if product_selected is not None:  
+            product = Product.get_product_by_id(int(product_selected))
             if product:
                 creator = product[4]  
-                product_details = f"Name: {product[1]}\nPrice: ${product[2]}\nDescription: {product[3]}\nCreated by: {creator}"
+                product_details = (f"Name: {product[1]}\n"
+                                   f"Price: ${product[2]}\n"
+                                   f"Description: {product[3]}\n"
+                                   f"Created by: {creator}")
 
-                if product[5] == logged_in_user:  
+                if product[5] == logged_in_user:
                     action = button_dialog(
                         title="Product Details",
                         text=f"{product_details}\n\nWhat would you like to do?",
@@ -209,9 +215,9 @@ def view_products(logged_in_user):
                     ).run()
 
                     if action == "update":
-                        update_product(product_selected)
+                        update_product(int(product_selected))
                     elif action == "delete":
-                        delete_product(product_selected)
+                        delete_product(int(product_selected))
                 else:
                     button_dialog(
                         title="Product Details",
@@ -224,7 +230,6 @@ def view_products(logged_in_user):
             text="No products found!",
             buttons=[("OK", True)]
         ).run()
-
 
 
 def update_product(product_id):

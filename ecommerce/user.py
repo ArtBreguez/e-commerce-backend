@@ -61,3 +61,14 @@ class User:
             db = get_db()
         db.cursor.execute("DELETE FROM users WHERE username = ?", (username,))
         db.connection.commit()
+
+    @staticmethod
+    def get_user_id(username, db=None):
+        if db is None:
+            db = get_db()
+        db.cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+        row = db.cursor.fetchone()
+        if row:
+            return row[0]
+        else:
+            raise ValueError('User not found')
