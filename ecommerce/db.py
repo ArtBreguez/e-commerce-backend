@@ -33,13 +33,14 @@ def create_tables(connection):
                         password_hash TEXT)''')
     
     cursor.execute('''CREATE TABLE IF NOT EXISTS products (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                name TEXT,
-                                price REAL,
-                                description TEXT,
-                                user_id INTEGER,
-                                ascii_art TEXT,
-                                FOREIGN KEY(user_id) REFERENCES users(id))''')
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT,
+                        price REAL,
+                        description TEXT,
+                        user_id INTEGER,
+                        ascii_art TEXT,
+                        quantity INTEGER,  -- New field for the product quantity
+                        FOREIGN KEY(user_id) REFERENCES users(id))''')
     
     cursor.execute('''CREATE TABLE IF NOT EXISTS carts (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,

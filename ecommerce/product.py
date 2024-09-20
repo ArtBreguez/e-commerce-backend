@@ -31,28 +31,28 @@ class Product:
         self.db = db or get_db()
 
     @staticmethod
-    def create_product(name, price, description, user_id, ascii_art=None, db=None):
+    def create_product(name, price, description, user_id, db=None, ascii_art=None, quantity=0):
         """
-        Create a new product and insert it into the 'products' table.
-
+        Create a new product and save it in the database.
+        
         Args:
             name (str): The name of the product.
             price (float): The price of the product.
-            description (str): A brief description of the product.
+            description (str): The description of the product.
             user_id (int): The ID of the user creating the product.
-            ascii_art (str): The ASCII art representation of the product image.
-            db (Database, optional): A database connection object. If not provided,
-                                     a new connection will be created using `get_db()`.
-
+            db (Database): The database connection (default: None).
+            ascii_art (str): The ASCII art for the product image (default: None).
+            quantity (int): The quantity available for the product (default: 0).
+        
         Returns:
             None
         """
         db = db or get_db()
         cursor = db.cursor
         cursor.execute('''
-            INSERT INTO products (name, price, description, user_id, ascii_art)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (name, price, description, user_id, ascii_art))
+            INSERT INTO products (name, price, description, user_id, ascii_art, quantity)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (name, price, description, user_id, ascii_art, quantity))
         db.connection.commit()
 
     @staticmethod
@@ -94,7 +94,7 @@ class Product:
         cursor = db.cursor
         
         cursor.execute('''
-            SELECT p.id, p.name, p.price, p.description, u.username, p.ascii_art, p.user_id
+            SELECT p.id, p.name, p.price, p.description, u.username, p.ascii_art, p.quantity, p.user_id
             FROM products p
             LEFT JOIN users u ON p.user_id = u.id
             WHERE p.id = ?
@@ -102,19 +102,19 @@ class Product:
         return cursor.fetchone()
 
     @staticmethod
-    def update_product(product_id, name=None, price=None, description=None, ascii_art=None, db=None):
+    def update_product(product_id, name=None, price=None, description=None, ascii_art=None, quantity=None, db=None):
         """
-        Update product details for a given product ID.
-
+        Update an existing product in the database.
+        
         Args:
             product_id (int): The ID of the product to update.
-            name (str, optional): The new name of the product.
-            price (float, optional): The new price of the product.
-            description (str, optional): The new description of the product.
-            ascii_art (str, optional): The new ASCII art representation of the product image.
-            db (Database, optional): A database connection object. If not provided,
-                                     a new connection will be created using `get_db()`.
-
+            name (str): The new name of the product (default: None).
+            price (float): The new price of the product (default: None).
+            description (str): The new description of the product (default: None).
+            ascii_art (str): The updated ASCII art for the product image (default: None).
+            quantity (int): The new quantity available for the product (default: None).
+            db (Database): The database connection (default: None).
+        
         Returns:
             None
         """
@@ -122,7 +122,6 @@ class Product:
         cursor = db.cursor
         updates = []
         values = []
-        
         if name:
             updates.append("name = ?")
             values.append(name)
@@ -135,7 +134,10 @@ class Product:
         if ascii_art:
             updates.append("ascii_art = ?")
             values.append(ascii_art)
-
+        if quantity is not None:
+            updates.append("quantity = ?")
+            values.append(quantity)
+        
         if updates:
             query = f'UPDATE products SET {", ".join(updates)} WHERE id = ?'
             values.append(product_id)

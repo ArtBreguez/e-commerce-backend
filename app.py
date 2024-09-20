@@ -188,11 +188,11 @@ def delete_account(logged_in_user):
 
 def create_product(logged_in_user):
     """
-    Allows the logged-in user to create a new product, with price validation and image URL for ASCII art.
-
+    Allows the logged-in user to create a new product, with price, quantity, and ASCII art validation.
+    
     Args:
         logged_in_user (str): The username of the logged-in user.
-
+    
     Returns:
         None
     """
@@ -223,27 +223,47 @@ def create_product(logged_in_user):
             text="Enter the product description: "
         ).run()
 
+        while True:
+            quantity = input_dialog(
+                title="Create Product",
+                text="Enter the product quantity available: "
+            ).run()
+
+            try:
+                quantity = int(quantity)
+                break
+            except ValueError:
+                button_dialog(
+                    title="Error",
+                    text="Invalid quantity. Please enter a valid integer.",
+                    buttons=[("OK", True)]
+                ).run()
+
         image_url = input_dialog(
-            title="Create Product",
-            text="Enter the image URL (optional, for ASCII art): "
+            title="Product Image",
+            text="Enter the image URL to convert to ASCII (leave blank to skip): "
         ).run()
 
-        # Download and convert the image to ASCII art
-        ascii_art = ""
+        ascii_art = None
         if image_url:
-            image = download_image_from_url(image_url)
-            if image:
-                ascii_art = convert_image_to_ascii(image)
-            else:
-                ascii_art = "Image not available"
+            try:
+                image = download_image_from_url(image_url)
+                if image:
+                    ascii_art = convert_image_to_ascii(image, new_width=100)
+            except Exception as e:
+                button_dialog(
+                    title="Error",
+                    text=f"Failed to convert image: {e}",
+                    buttons=[("OK", True)]
+                ).run()
 
         if description:
             try:
                 user_id = User.get_user_id(logged_in_user)
-                Product.create_product(name, price, description, user_id, ascii_art)
+                Product.create_product(name, price, description, user_id, quantity=quantity, ascii_art=ascii_art)
                 button_dialog(
                     title="Success",
-                    text=f"Product {name} created successfully with ASCII art!",
+                    text=f"Product {name} created successfully!",
                     buttons=[("OK", True)]
                 ).run()
             except Exception as e:
@@ -252,6 +272,7 @@ def create_product(logged_in_user):
                     text=str(e),
                     buttons=[("OK", True)]
                 ).run()
+
 
 def view_products(logged_in_user):
     """
@@ -267,7 +288,7 @@ def view_products(logged_in_user):
     products = Product.get_all_products()
     
     if products:
-        product_list = [(str(p[0]), HTML(f'{p[1]} - ${p[2]}')) for p in products]  
+        product_list = [(str(p[0]), HTML(f'{p[1]} - ${p[2]} (Quantity: {p[6]})')) for p in products]  
         
         product_selected = radiolist_dialog(
             title="Product List",
@@ -280,11 +301,12 @@ def view_products(logged_in_user):
             product = Product.get_product_by_id(int(product_selected))
             if product:
                 creator = product[4]  
-                ascii_art = product[5] 
+                ascii_art = product[5]  
 
                 product_details = (f"Name: {product[1]}\n"
                                    f"Price: ${product[2]}\n"
                                    f"Description: {product[3]}\n"
+                                   f"Quantity: {product[6]}\n"  
                                    f"Created by: {creator}")
 
                 if creator == logged_in_user:
@@ -347,11 +369,11 @@ def view_ascii_art(ascii_art):
 
 def update_product(product_id):
     """
-    Allows the user to update a product's name, price, description, or ASCII art, with validation.
-
+    Allows the user to update a product's name, price, description, quantity, and ASCII art.
+    
     Args:
         product_id (int): The ID of the product to update.
-
+    
     Returns:
         None
     """
@@ -385,23 +407,29 @@ def update_product(product_id):
         text="Enter the new description (or leave blank to skip): "
     ).run()
 
-    image_url = input_dialog(
-        title="Update Product",
-        text="Enter the new image URL (for ASCII art) or leave blank to skip: "
-    ).run()
+    while True:
+        quantity = input_dialog(
+            title="Update Product",
+            text="Enter the new quantity available (or leave blank to skip): "
+        ).run()
 
-    # Download and convert the image to ASCII art if a new URL is provided
-    ascii_art = None
-    if image_url:
-        image = download_image_from_url(image_url)
-        if image:
-            ascii_art = convert_image_to_ascii(image)
-        else:
-            ascii_art = "Image not available"
+        if quantity == "":
+            quantity = None
+            break
 
-    if name or price or description or ascii_art:
         try:
-            Product.update_product(product_id, name=name, price=price, description=description, ascii_art=ascii_art)
+            quantity = int(quantity)
+            break
+        except ValueError:
+            button_dialog(
+                title="Error",
+                text="Invalid quantity. Please enter a valid integer.",
+                buttons=[("OK", True)]
+            ).run()
+
+    if name or price or description or quantity is not None:
+        try:
+            Product.update_product(product_id, name=name, price=price, description=description, quantity=quantity)
             button_dialog(
                 title="Success",
                 text="Product updated successfully!",
