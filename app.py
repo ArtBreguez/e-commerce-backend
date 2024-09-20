@@ -8,12 +8,22 @@ from io import BytesIO
 from PIL import Image
 from prompt_toolkit.formatted_text import HTML
 
+# Define a custom style for the dialogs and inputs
 style = Style.from_dict({
     'dialog': 'bg:#5f819d #ffffff',
     'input': 'bg:#ffcc00 #000000',
 })
 
 def show_main_menu(logged_in_user):
+    """
+    Displays the main menu to the user, either logged-in or logged-out state.
+
+    Args:
+        logged_in_user (str or None): The username of the logged-in user, or None if no user is logged in.
+
+    Returns:
+        str: The selected action from the menu.
+    """
     if logged_in_user:
         options = [
             ("update_username", "Update Username"),
@@ -42,6 +52,12 @@ def show_main_menu(logged_in_user):
     return result
 
 def register_user():
+    """
+    Handles user registration by prompting for a username and password.
+
+    Returns:
+        None
+    """
     username = input_dialog(
         title="Register",
         text="Enter a username: "
@@ -70,6 +86,12 @@ def register_user():
                 ).run()
 
 def login_user():
+    """
+    Handles user login by prompting for a username and password.
+
+    Returns:
+        str or None: The logged-in username if successful, or None if login fails.
+    """
     username = input_dialog(
         title="Login",
         text="Enter your username: "
@@ -100,6 +122,15 @@ def login_user():
     return None
 
 def update_username(logged_in_user):
+    """
+    Allows the logged-in user to update their username.
+
+    Args:
+        logged_in_user (str): The current username of the logged-in user.
+
+    Returns:
+        str: The new username after the update.
+    """
     new_username = input_dialog(
         title="Update Username",
         text="Enter a new username: "
@@ -122,22 +153,16 @@ def update_username(logged_in_user):
             ).run()
     return logged_in_user
 
-def update_password(logged_in_user):
-    new_password = input_dialog(
-        title="Update Password",
-        text="Enter a new password: ",
-        password=True  
-    ).run()
-    
-    if new_password:
-        User.update_password(logged_in_user, new_password)
-        button_dialog(
-            title="Success",
-            text="Password updated successfully!",
-            buttons=[("OK", True)]
-        ).run()
-
 def delete_account(logged_in_user):
+    """
+    Allows the logged-in user to delete their account after confirmation.
+
+    Args:
+        logged_in_user (str): The username of the logged-in user.
+
+    Returns:
+        None or str: None if the account is deleted, or the logged-in username if the action is canceled.
+    """
     confirmation = yes_no_dialog(
         title="Confirm Deletion",
         text="Are you sure you want to delete your account?"
@@ -154,25 +179,46 @@ def delete_account(logged_in_user):
     return logged_in_user
 
 def create_product(logged_in_user):
+    """
+    Allows the logged-in user to create a new product, with price validation.
+
+    Args:
+        logged_in_user (str): The username of the logged-in user.
+
+    Returns:
+        None
+    """
     name = input_dialog(
         title="Create Product",
         text="Enter the product name: "
     ).run()
     
     if name:
-        price = input_dialog(
-            title="Create Product",
-            text="Enter the product price: "
-        ).run()
+        while True:  
+            price = input_dialog(
+                title="Create Product",
+                text="Enter the product price (USD): "
+            ).run()
+            
+            try:
+                price = float(price)
+                break  
+            except ValueError:
+                button_dialog(
+                    title="Error",
+                    text="Invalid price. Please enter a valid number.",
+                    buttons=[("OK", True)]
+                ).run()
+
         description = input_dialog(
             title="Create Product",
             text="Enter the product description: "
         ).run()
 
-        if price and description:
+        if description:
             try:
                 user_id = User.get_user_id(logged_in_user)
-                Product.create_product(name, float(price), description, user_id)
+                Product.create_product(name, price, description, user_id)
                 button_dialog(
                     title="Success",
                     text=f"Product {name} created successfully!",
@@ -185,7 +231,17 @@ def create_product(logged_in_user):
                     buttons=[("OK", True)]
                 ).run()
 
+
 def view_products(logged_in_user):
+    """
+    Displays the list of products and allows the user to view details, update, or delete them if they are the creator.
+
+    Args:
+        logged_in_user (str): The username of the logged-in user.
+
+    Returns:
+        None
+    """
     products = Product.get_all_products()
     
     if products:
@@ -198,7 +254,7 @@ def view_products(logged_in_user):
             cancel_text="Back"  
         ).run()
 
-        if product_selected is not None: 
+        if product_selected is not None:  
             product = Product.get_product_by_id(int(product_selected))
             if product:
                 creator = product[4]  
@@ -215,9 +271,9 @@ def view_products(logged_in_user):
                     ).run()
 
                     if action == "update":
-                        update_product(int(product_selected))  
+                        update_product(int(product_selected)) 
                     elif action == "delete":
-                        delete_product(int(product_selected)) 
+                        delete_product(int(product_selected))  
                 else:
                     button_dialog(
                         title="Product Details",
@@ -231,16 +287,41 @@ def view_products(logged_in_user):
             buttons=[("OK", True)]
         ).run()
 
-
 def update_product(product_id):
+    """
+    Allows the user to update a product's name, price, or description, with price validation.
+
+    Args:
+        product_id (int): The ID of the product to update.
+
+    Returns:
+        None
+    """
     name = input_dialog(
         title="Update Product",
         text="Enter the new name (or leave blank to skip): "
     ).run()
-    price = input_dialog(
-        title="Update Product",
-        text="Enter the new price (or leave blank to skip): "
-    ).run()
+    
+    while True:
+        price = input_dialog(
+            title="Update Product",
+            text="Enter the new price (or leave blank to skip): "
+        ).run()
+
+        if price == "":
+            price = None
+            break
+
+        try:
+            price = float(price)
+            break  
+        except ValueError:
+            button_dialog(
+                title="Error",
+                text="Invalid price. Please enter a valid number.",
+                buttons=[("OK", True)]
+            ).run()
+
     description = input_dialog(
         title="Update Product",
         text="Enter the new description (or leave blank to skip): "
@@ -248,8 +329,7 @@ def update_product(product_id):
 
     if name or price or description:
         try:
-            Product.update_product(product_id, name=name, price=float(price) if price else None, 
-                                   description=description)
+            Product.update_product(product_id, name=name, price=price, description=description)
             button_dialog(
                 title="Success",
                 text="Product updated successfully!",
@@ -262,7 +342,17 @@ def update_product(product_id):
                 buttons=[("OK", True)]
             ).run()
 
+
 def delete_product(product_id):
+    """
+    Allows the user to delete a product after confirmation.
+
+    Args:
+        product_id (int): The ID of the product to delete.
+
+    Returns:
+        None
+    """
     confirmation = yes_no_dialog(
         title="Confirm Deletion",
         text="Are you sure you want to delete this product?"
@@ -284,7 +374,14 @@ def delete_product(product_id):
             ).run()
 
 def main():
-    db = get_db()
+    """
+    Main function that controls the application flow, including user login, product creation,
+    product management, and logout.
+
+    Returns:
+        None
+    """
+    db = get_db() 
     logged_in_user = None
 
     while True:
@@ -327,7 +424,6 @@ def main():
                 buttons=[("OK", True)]
             ).run()
             break
-
 
 if __name__ == "__main__":
     main()
