@@ -1,5 +1,6 @@
 from ecommerce.user import User
 from ecommerce.db import get_db
+from utils.ascii import convert_image_to_ascii, download_image_from_url
 from prompt_toolkit.shortcuts import input_dialog, yes_no_dialog, button_dialog, radiolist_dialog
 from prompt_toolkit.styles import Style
 from ecommerce.product import Product 
@@ -7,6 +8,13 @@ import requests
 from io import BytesIO
 from PIL import Image
 from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit import Application
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.layout import Layout
+from prompt_toolkit.widgets import Button, Dialog, TextArea
+from prompt_toolkit.layout.containers import HSplit
+from prompt_toolkit.application import get_app  
+
 
 # Define a custom style for the dialogs and inputs
 style = Style.from_dict({
@@ -180,7 +188,7 @@ def delete_account(logged_in_user):
 
 def create_product(logged_in_user):
     """
-    Allows the logged-in user to create a new product, with price validation.
+    Allows the logged-in user to create a new product, with price validation and image URL for ASCII art.
 
     Args:
         logged_in_user (str): The username of the logged-in user.
@@ -215,13 +223,27 @@ def create_product(logged_in_user):
             text="Enter the product description: "
         ).run()
 
+        image_url = input_dialog(
+            title="Create Product",
+            text="Enter the image URL (optional, for ASCII art): "
+        ).run()
+
+        # Download and convert the image to ASCII art
+        ascii_art = ""
+        if image_url:
+            image = download_image_from_url(image_url)
+            if image:
+                ascii_art = convert_image_to_ascii(image)
+            else:
+                ascii_art = "Image not available"
+
         if description:
             try:
                 user_id = User.get_user_id(logged_in_user)
-                Product.create_product(name, price, description, user_id)
+                Product.create_product(name, price, description, user_id, ascii_art)
                 button_dialog(
                     title="Success",
-                    text=f"Product {name} created successfully!",
+                    text=f"Product {name} created successfully with ASCII art!",
                     buttons=[("OK", True)]
                 ).run()
             except Exception as e:
@@ -231,10 +253,10 @@ def create_product(logged_in_user):
                     buttons=[("OK", True)]
                 ).run()
 
-
 def view_products(logged_in_user):
     """
     Displays the list of products and allows the user to view details, update, or delete them if they are the creator.
+    Shows an option to view the ASCII art in detail with scroll functionality.
 
     Args:
         logged_in_user (str): The username of the logged-in user.
@@ -258,6 +280,8 @@ def view_products(logged_in_user):
             product = Product.get_product_by_id(int(product_selected))
             if product:
                 creator = product[4]  
+                ascii_art = product[5] 
+
                 product_details = (f"Name: {product[1]}\n"
                                    f"Price: ${product[2]}\n"
                                    f"Description: {product[3]}\n"
@@ -267,19 +291,24 @@ def view_products(logged_in_user):
                     action = button_dialog(
                         title="Product Details",
                         text=f"{product_details}\n\nWhat would you like to do?",
-                        buttons=[("Update", "update"), ("Delete", "delete"), ("Back", None)]
+                        buttons=[("Update", "update"), ("Delete", "delete"), ("View Image", "view_image"), ("Back", None)]
                     ).run()
 
                     if action == "update":
                         update_product(int(product_selected)) 
                     elif action == "delete":
-                        delete_product(int(product_selected))  
+                        delete_product(int(product_selected))
+                    elif action == "view_image":
+                        view_ascii_art(ascii_art)
                 else:
-                    button_dialog(
+                    action = button_dialog(
                         title="Product Details",
-                        text=product_details,
-                        buttons=[("Back", True)]
+                        text=f"{product_details}",
+                        buttons=[("View Image", "view_image"), ("Back", True)]
                     ).run()
+
+                    if action == "view_image":
+                        view_ascii_art(ascii_art)
     else:
         button_dialog(
             title="No Products",
@@ -287,9 +316,38 @@ def view_products(logged_in_user):
             buttons=[("OK", True)]
         ).run()
 
+def view_ascii_art(ascii_art):
+    """
+    Displays the ASCII art in a scrollable window using TextArea.
+
+    Args:
+        ascii_art (str): The ASCII art to display.
+
+    Returns:
+        None
+    """
+    text_area = TextArea(text=ascii_art, scrollbar=True, focusable=True, wrap_lines=False)
+
+    dialog = Dialog(
+        title="ASCII Art (Scroll to view)",
+        body=HSplit([text_area]),  
+        buttons=[Button(text="Back", handler=lambda: get_app().exit())] 
+    )
+
+    kb = KeyBindings()
+    
+    @kb.add("q") 
+    def exit_(event):
+        event.app.exit()
+
+    layout = Layout(dialog)
+    app = Application(layout=layout, key_bindings=kb, full_screen=True, mouse_support=True)
+
+    app.run()
+
 def update_product(product_id):
     """
-    Allows the user to update a product's name, price, or description, with price validation.
+    Allows the user to update a product's name, price, description, or ASCII art, with validation.
 
     Args:
         product_id (int): The ID of the product to update.
@@ -327,9 +385,23 @@ def update_product(product_id):
         text="Enter the new description (or leave blank to skip): "
     ).run()
 
-    if name or price or description:
+    image_url = input_dialog(
+        title="Update Product",
+        text="Enter the new image URL (for ASCII art) or leave blank to skip: "
+    ).run()
+
+    # Download and convert the image to ASCII art if a new URL is provided
+    ascii_art = None
+    if image_url:
+        image = download_image_from_url(image_url)
+        if image:
+            ascii_art = convert_image_to_ascii(image)
+        else:
+            ascii_art = "Image not available"
+
+    if name or price or description or ascii_art:
         try:
-            Product.update_product(product_id, name=name, price=price, description=description)
+            Product.update_product(product_id, name=name, price=price, description=description, ascii_art=ascii_art)
             button_dialog(
                 title="Success",
                 text="Product updated successfully!",
