@@ -31,6 +31,7 @@ class TestUserModel(unittest.TestCase):
         self.assertTrue(User.login(username, password, self.db))
         with self.assertRaises(ValueError):
             User.login(username, "wrongpassword", self.db)  
+            
     def test_update_username(self):
         """ Test updating the username of a registered user. """
         username = "testuser"
@@ -59,4 +60,4 @@ class TestUserModel(unittest.TestCase):
         User.delete_account(username, self.db)
         self.db.cursor.execute("SELECT username FROM users WHERE username = ?", (username,))
         user_in_db = self.db.cursor.fetchone()
-        self.assertIsNone(user_in_db)  
+        self.assertIsNone(user_in_db) 
