@@ -1,5 +1,33 @@
 import sqlite3
 
+class Database:
+    """
+    A wrapper class for managing the SQLite database connection and cursor.
+
+    Attributes:
+        connection (sqlite3.Connection): The SQLite database connection.
+        cursor (sqlite3.Cursor): The cursor for executing queries on the SQLite database.
+    """
+    def __init__(self, connection, cursor):
+        """
+        Initialize the Database object with a connection and cursor.
+
+        Args:
+            connection (sqlite3.Connection): The SQLite database connection.
+            cursor (sqlite3.Cursor): The cursor for executing queries.
+        """
+        self.connection = connection
+        self.cursor = cursor
+
+    def close(self):
+        """
+        Close the SQLite database connection.
+
+        Returns:
+            None
+        """
+        self.connection.close()
+
 def get_db(db_name="ecommerce.db"):
     """
     Connect to the SQLite database and create necessary tables if they don't exist.
@@ -51,39 +79,13 @@ def create_tables(connection):
                                 FOREIGN KEY(product_id) REFERENCES products(id),
                                 UNIQUE(user_id, product_id))''')
 
-    cursor.execute('''CREATE TABLE IF NOT EXISTS orders (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id INTEGER,
-                        order_details TEXT,
-                        total REAL,
-                        FOREIGN KEY(user_id) REFERENCES users(id))''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            order_details TEXT,
+            total REAL,
+            status TEXT DEFAULT 'pending',  -- Adiciona o status da ordem com valor padrão
+            FOREIGN KEY(user_id) REFERENCES users(id))''')
     
     connection.commit()
-
-class Database:
-    """
-    A wrapper class for managing the SQLite database connection and cursor.
-
-    Attributes:
-        connection (sqlite3.Connection): The SQLite database connection.
-        cursor (sqlite3.Cursor): The cursor for executing queries on the SQLite database.
-    """
-    def __init__(self, connection, cursor):
-        """
-        Initialize the Database object with a connection and cursor.
-
-        Args:
-            connection (sqlite3.Connection): The SQLite database connection.
-            cursor (sqlite3.Cursor): The cursor for executing queries.
-        """
-        self.connection = connection
-        self.cursor = cursor
-
-    def close(self):
-        """
-        Close the SQLite database connection.
-
-        Returns:
-            None
-        """
-        self.connection.close()

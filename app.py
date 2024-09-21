@@ -5,6 +5,7 @@ from prompt_toolkit.shortcuts import input_dialog, yes_no_dialog, button_dialog,
 from prompt_toolkit.styles import Style
 from ecommerce.product import Product 
 from ecommerce.cart import Cart
+from ecommerce.order import Order
 import requests
 from io import BytesIO
 from PIL import Image
@@ -16,8 +17,6 @@ from prompt_toolkit.widgets import Button, Dialog, TextArea
 from prompt_toolkit.layout.containers import HSplit
 from prompt_toolkit.application import get_app  
 
-
-# Define a custom style for the dialogs and inputs
 style = Style.from_dict({
     'dialog': 'bg:#5f819d #ffffff',
     'input': 'bg:#ffcc00 #000000',
@@ -42,6 +41,7 @@ def show_main_menu(logged_in_user):
             ("create_product", "Create Product"),
             ("view_cart", "View Cart"), 
             ("checkout", "Checkout"),
+            ("view_orders", "View Orders"),
             ("logout", "Logout"),
         ]
     else:
@@ -542,25 +542,85 @@ def view_cart(logged_in_user):
 
 def checkout(logged_in_user):
     """
-    Handles the checkout process.
+    Handles the checkout process and creates a new order.
+
+    Args:
+        logged_in_user (str): The username of the logged-in user.
+    
+    Returns:
+        None
     """
     user_id = User.get_user_id(logged_in_user)
     cart = Cart(user_id)
+    cart_items = cart.view_cart()
 
-    try:
-        cart.checkout()
+    if cart_items:
+        order_details = "\n".join([f"{item[0]} (x{item[2]}) - ${item[1] * item[2]}" for item in cart_items])
+        total = sum([item[1] * item[2] for item in cart_items])
+
+        order = Order(user_id)
+        order.create_order(order_details, total)  
+
+        cart.clear_cart()
+
         button_dialog(
             title="Checkout",
-            text="Order placed successfully!",
+            text="Order placed successfully! Your order is now pending.",
             buttons=[("OK", True)]
         ).run()
-    except ValueError as e:
+    else:
         button_dialog(
             title="Error",
-            text=str(e),
+            text="Your cart is empty. Please add products before checkout.",
             buttons=[("OK", True)]
         ).run()
 
+
+def view_orders(logged_in_user):
+    """
+    Displays a list of the user's orders with the product name, seller name, and status.
+    Allows viewing more details by selecting an order.
+
+    Args:
+        logged_in_user (str): The username of the logged-in user.
+    
+    Returns:
+        None
+    """
+    user_id = User.get_user_id(logged_in_user)
+    orders = Order.get_orders_by_user(user_id)
+
+    if orders:
+        order_list = [(str(order[0]), f"Order ID: {order[0]} - Product: {order[4]} - Seller: {order[5]} - Status: {order[3]}") for order in orders]
+
+        order_selected = radiolist_dialog(
+            title="Order List",
+            text="Select an order to view details:",
+            values=order_list,  
+            cancel_text="Back" 
+        ).run()
+
+        if order_selected is not None:
+            selected_order = next(order for order in orders if str(order[0]) == order_selected)
+            order_details = (f"Order ID: {selected_order[0]}\n"
+                             f"Details: {selected_order[1]}\n"
+                             f"Total: ${selected_order[2]}\n"
+                             f"Product: {selected_order[4]}\n"
+                             f"Seller: {selected_order[5]}\n"
+                             f"Status: {selected_order[3]}")
+
+            button_dialog(
+                title="Order Details",
+                text=order_details,
+                buttons=[("Back", True)]  
+            ).run()
+
+    else:
+        button_dialog(
+            title="No Orders",
+            text="You have no orders.",
+            buttons=[("OK", True)]
+        ).run()
 
 def main():
     """
@@ -602,6 +662,9 @@ def main():
 
         elif action == 'checkout' and logged_in_user:
             checkout(logged_in_user)
+        
+        elif action == 'view_orders' and logged_in_user:
+            view_orders(logged_in_user)
 
         elif action == 'logout' and logged_in_user:
             button_dialog(

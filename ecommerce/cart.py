@@ -57,27 +57,31 @@ class Cart:
 
     def checkout(self):
         """
-        Checkout the cart and create an order.
+        Process the checkout of the cart.
 
         Returns:
             None
+
+        Raises:
+            ValueError: If the cart is empty.
         """
-        cursor = self.db.cursor
         cart_items = self.view_cart()
 
         if not cart_items:
             raise ValueError("Your cart is empty. Please add products before checkout.")
 
-        order_details = ', '.join([f"{item[0]} (x{item[2]})" for item in cart_items])
-        total = sum(item[1] * item[2] for item in cart_items)
+        order_details = "\n".join([f"{item[0]} - ${item[1]} (x{item[2]})" for item in cart_items])
+        total = sum([item[1] * item[2] for item in cart_items])
 
+        cursor = self.db.cursor
         cursor.execute('''
-            INSERT INTO orders (user_id, order_details, total)
-            VALUES (?, ?, ?)
-        ''', (self.user_id, order_details, total))
+            INSERT INTO orders (user_id, order_details, total, status)
+            VALUES (?, ?, ?, ?)
+        ''', (self.user_id, order_details, total, 'pending'))
 
-        cursor.execute('DELETE FROM carts WHERE user_id = ?', (self.user_id,))
         self.db.connection.commit()
+
+        self.clear_cart()
 
     def clear_cart(self):
         """

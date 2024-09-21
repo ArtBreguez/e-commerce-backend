@@ -61,3 +61,6 @@ class TestUserModel(unittest.TestCase):
         self.db.cursor.execute("SELECT username FROM users WHERE username = ?", (username,))
         user_in_db = self.db.cursor.fetchone()
         self.assertIsNone(user_in_db) 
+
+if __name__ == '__main__':
+    unittest.main()
