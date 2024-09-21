@@ -43,12 +43,13 @@ def create_tables(connection):
                         FOREIGN KEY(user_id) REFERENCES users(id))''')
     
     cursor.execute('''CREATE TABLE IF NOT EXISTS carts (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id INTEGER,
-                        product_id INTEGER,
-                        quantity INTEGER,
-                        FOREIGN KEY(user_id) REFERENCES users(id),
-                        FOREIGN KEY(product_id) REFERENCES products(id))''')
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                user_id INTEGER,
+                                product_id INTEGER,
+                                quantity INTEGER,
+                                FOREIGN KEY(user_id) REFERENCES users(id),
+                                FOREIGN KEY(product_id) REFERENCES products(id),
+                                UNIQUE(user_id, product_id))''')
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS orders (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,

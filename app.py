@@ -4,6 +4,7 @@ from utils.ascii import convert_image_to_ascii, download_image_from_url
 from prompt_toolkit.shortcuts import input_dialog, yes_no_dialog, button_dialog, radiolist_dialog
 from prompt_toolkit.styles import Style
 from ecommerce.product import Product 
+from ecommerce.cart import Cart
 import requests
 from io import BytesIO
 from PIL import Image
@@ -39,6 +40,8 @@ def show_main_menu(logged_in_user):
             ("delete_account", "Delete Account"),
             ("view_products", "View Products"),  
             ("create_product", "Create Product"),
+            ("view_cart", "View Cart"), 
+            ("checkout", "Checkout"),
             ("logout", "Logout"),
         ]
     else:
@@ -277,8 +280,8 @@ def create_product(logged_in_user):
 def view_products(logged_in_user):
     """
     Displays the list of products and allows the user to view details, update, or delete them if they are the creator.
-    Shows an option to view the ASCII art in detail with scroll functionality.
-
+    Also shows an option to add the product to the cart if it's not created by the logged-in user.
+    
     Args:
         logged_in_user (str): The username of the logged-in user.
 
@@ -301,12 +304,13 @@ def view_products(logged_in_user):
             product = Product.get_product_by_id(int(product_selected))
             if product:
                 creator = product[4]  
-                ascii_art = product[5]  
+                ascii_art = product[5] 
+                quantity = product[6]   
 
                 product_details = (f"Name: {product[1]}\n"
                                    f"Price: ${product[2]}\n"
                                    f"Description: {product[3]}\n"
-                                   f"Quantity: {product[6]}\n"  
+                                   f"Quantity: {quantity}\n"  
                                    f"Created by: {creator}")
 
                 if creator == logged_in_user:
@@ -326,10 +330,42 @@ def view_products(logged_in_user):
                     action = button_dialog(
                         title="Product Details",
                         text=f"{product_details}",
-                        buttons=[("View Image", "view_image"), ("Back", True)]
+                        buttons=[("Add to Cart", "add_to_cart"), ("View Image", "view_image"), ("Back", True)]
                     ).run()
 
-                    if action == "view_image":
+                    if action == "add_to_cart":
+                        while True:
+                            quantity_to_add = input_dialog(
+                                title="Add to Cart",
+                                text=f"Enter the quantity to add (Available: {quantity}): "
+                            ).run()
+
+                            try:
+                                quantity_to_add = int(quantity_to_add)
+                                if 0 < quantity_to_add <= quantity:
+                                    user_id = User.get_user_id(logged_in_user)
+                                    cart = Cart(user_id)
+                                    cart.add_product(int(product_selected), quantity_to_add)
+                                    button_dialog(
+                                        title="Success",
+                                        text=f"Added {quantity_to_add} of {product[1]} to the cart.",
+                                        buttons=[("OK", True)]
+                                    ).run()
+                                    break
+                                else:
+                                    button_dialog(
+                                        title="Error",
+                                        text="Invalid quantity. Please enter a number between 1 and the available quantity.",
+                                        buttons=[("OK", True)]
+                                    ).run()
+                            except ValueError:
+                                button_dialog(
+                                    title="Error",
+                                    text="Invalid input. Please enter a valid integer.",
+                                    buttons=[("OK", True)]
+                                ).run()
+
+                    elif action == "view_image":
                         view_ascii_art(ascii_art)
     else:
         button_dialog(
@@ -473,6 +509,59 @@ def delete_product(product_id):
                 buttons=[("OK", True)]
             ).run()
 
+def view_cart(logged_in_user):
+    """
+    Displays the user's cart.
+    Shows a message if the cart is empty.
+    
+    Args:
+        logged_in_user (str): The username of the logged-in user.
+    
+    Returns:
+        None
+    """
+    user_id = User.get_user_id(logged_in_user)
+    cart = Cart(user_id)
+
+    cart_items = cart.view_cart()
+
+    if cart_items:
+        cart_details = "\n".join([f"{item[0]} - ${item[1]} (x{item[2]})" for item in cart_items])
+        button_dialog(
+            title="Cart Items",
+            text=f"Your cart:\n\n{cart_details}",
+            buttons=[("OK", True)]
+        ).run()
+    else:
+        button_dialog(
+            title="Cart is Empty",
+            text="Your cart is currently empty.",
+            buttons=[("OK", True)]
+        ).run()
+
+
+def checkout(logged_in_user):
+    """
+    Handles the checkout process.
+    """
+    user_id = User.get_user_id(logged_in_user)
+    cart = Cart(user_id)
+
+    try:
+        cart.checkout()
+        button_dialog(
+            title="Checkout",
+            text="Order placed successfully!",
+            buttons=[("OK", True)]
+        ).run()
+    except ValueError as e:
+        button_dialog(
+            title="Error",
+            text=str(e),
+            buttons=[("OK", True)]
+        ).run()
+
+
 def main():
     """
     Main function that controls the application flow, including user login, product creation,
@@ -507,6 +596,12 @@ def main():
 
         elif action == 'create_product' and logged_in_user:
             create_product(logged_in_user) 
+        
+        elif action == 'view_cart' and logged_in_user:
+            view_cart(logged_in_user)
+
+        elif action == 'checkout' and logged_in_user:
+            checkout(logged_in_user)
 
         elif action == 'logout' and logged_in_user:
             button_dialog(

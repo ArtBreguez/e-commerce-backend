@@ -78,10 +78,14 @@ def download_image_from_url(url):
     Returns:
         PIL.Image or None: The downloaded image as a PIL.Image object, or None if an error occurs.
     """
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+    }
     try:
-        response = requests.get(url)
-        response.raise_for_status()  
-        return Image.open(BytesIO(response.content)) 
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return Image.open(BytesIO(response.content))
     except Exception as e:
-        print(f"Error downloading the image: {e}")
+        print(f"Erro ao baixar a imagem: {e}")
         return None
+
