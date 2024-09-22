@@ -1,4 +1,7 @@
 from ecommerce.user import User
+from ecommerce.product import Product
+from ecommerce.cart import Cart
+from ecommerce.order import Order
 from utils.ui import display_message_dialog, input_prompt, display_confirmation_dialog, input_dialog, radiolist_dialog, yes_no_dialog, button_dialog
 
 def manage_profile(logged_in_user):
@@ -264,25 +267,34 @@ def update_password(logged_in_user):
 
 def delete_account(logged_in_user):
     """
-    Allows the logged-in user to delete their account after confirmation.
+    Allows the logged-in user to delete their account after confirmation, and deletes all associated data.
 
     Args:
         logged_in_user (str): The username of the logged-in user.
 
     Returns:
-        None or str: None if the account is deleted, or the logged-in username if the action is canceled.
+        None: Always returns None as the user account is deleted.
     """
     confirmation = yes_no_dialog(
         title="Confirm Deletion",
-        text="Are you sure you want to delete your account?"
+        text="Are you sure you want to delete your account? All products, carts, and orders will be removed."
     ).run()
-    
+
     if confirmation:
-        User.delete_account(logged_in_user)
+        user_id = User.get_user_id(logged_in_user)
+        Product.delete_products_by_user(user_id)  
+
+        Cart.clear_cart_by_user(user_id)  
+
+        Order.delete_orders_by_user(user_id)  
+
+        User.delete_account(logged_in_user)  
+
         button_dialog(
             title="Success",
-            text=f"Account {logged_in_user} deleted successfully!",
+            text=f"Account {logged_in_user} and all associated data deleted successfully!",
             buttons=[("OK", True)]
         ).run()
-        return None
+
+        raise SystemExit  
     return logged_in_user

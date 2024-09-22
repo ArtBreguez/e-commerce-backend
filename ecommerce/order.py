@@ -113,3 +113,23 @@ class Order:
             WHERE id = ? AND user_id = ? AND status = 'pending'
         ''', (order_id, self.user_id))
         self.db.connection.commit()
+    
+    @staticmethod
+    def delete_orders_by_user(user_id, db=None):
+        """
+        Delete all orders for a specific user.
+
+        Args:
+            user_id (int): The ID of the user whose orders will be deleted.
+            db (Database): Optional database connection. If not provided, a new connection will be created.
+
+        Returns:
+            None
+        """
+        db = db or get_db()
+        cursor = db.cursor
+        cursor.execute('''
+            DELETE FROM orders
+            WHERE user_id = ?
+        ''', (user_id,))
+        db.connection.commit()

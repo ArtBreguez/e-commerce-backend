@@ -178,3 +178,16 @@ class Product:
             WHERE user_id = ?
         ''', (user_id,))
         return cursor.fetchall()
+    
+    @staticmethod
+    def delete_products_by_user(user_id, db=None):
+        """
+        Delete all products created by the current user.
+
+        Returns:
+            None
+        """
+        db = db or get_db()
+        cursor = db.cursor
+        cursor.execute('DELETE FROM products WHERE user_id = ?', (user_id,))
+        db.connection.commit()

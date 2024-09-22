@@ -93,3 +93,17 @@ class Cart:
         cursor = self.db.cursor
         cursor.execute('DELETE FROM carts WHERE user_id = ?', (self.user_id,))
         self.db.connection.commit()
+
+    @staticmethod
+    def clear_cart_by_user(user_id, db=None):
+        """
+        Clear the cart for a specific user.
+
+        Args:
+            user_id (int): The ID of the user whose cart will be cleared.
+            db (Database): Optional database connection. If not provided, a new connection will be created.
+        """
+        db = db or get_db()
+        cursor = db.cursor
+        cursor.execute('DELETE FROM carts WHERE user_id = ?', (user_id,))
+        db.connection.commit()
