@@ -34,14 +34,11 @@ def show_main_menu(logged_in_user):
     """
     if logged_in_user:
         options = [
-            ("update_username", "Update Username"),
-            ("update_password", "Change Password"),
-            ("delete_account", "Delete Account"),
-            ("view_products", "View Products"),  
-            ("create_product", "Create Product"),
-            ("view_cart", "View Cart"), 
-            ("checkout", "Checkout"),
+            ("market_products", "Market Products"),  
+            ("my_products", "My Products"),         
+            ("view_cart", "View Cart"),
             ("view_orders", "View Orders"),
+            ("manage_profile", "Manage Profile"),
             ("logout", "Logout"),
         ]
     else:
@@ -49,18 +46,51 @@ def show_main_menu(logged_in_user):
             ("login", "Login"),
             ("register", "Register"),
         ]
-    
+
     result = radiolist_dialog(
         title="Main Menu",
         text="Please choose an option:",
-        values=[(opt[0], opt[1]) for opt in options],  
-        cancel_text="Quit"  
+        values=[(opt[0], opt[1]) for opt in options],
+        cancel_text="Quit"
     ).run()
 
     if result is None:
         exit()
 
     return result
+
+
+def manage_profile(logged_in_user):
+    """
+    Displays the profile management options: update username, change password, or delete account.
+
+    Args:
+        logged_in_user (str): The username of the logged-in user.
+    
+    Returns:
+        None
+    """
+    options = [
+        ("update_username", "Update Username"),
+        ("update_password", "Change Password"),
+        ("delete_account", "Delete Account"),
+    ]
+
+    action = radiolist_dialog(
+        title="Manage Profile",
+        text="Select an option:",
+        values=options
+    ).run()
+
+    if action == "update_username":
+        update_username(logged_in_user)
+    elif action == "update_password":
+        update_password(logged_in_user)
+    elif action == "delete_account":
+        delete_account(logged_in_user)
+    elif action == "back":
+        return
+
 
 def register_user():
     """
@@ -304,7 +334,7 @@ def view_products(logged_in_user):
             product = Product.get_product_by_id(int(product_selected))
             if product:
                 creator = product[4]  
-                ascii_art = product[5] 
+                ascii_art = product[5] if product[5] is not None else "No ASCII art available."
                 quantity = product[6]   
 
                 product_details = (f"Name: {product[1]}\n"
@@ -379,7 +409,7 @@ def view_ascii_art(ascii_art):
     Displays the ASCII art in a scrollable window using TextArea.
 
     Args:
-        ascii_art (str): The ASCII art to display.
+        ascii_art (str): The ASCII art to display, or a message if no art is available.
 
     Returns:
         None
@@ -512,7 +542,7 @@ def delete_product(product_id):
 def view_cart(logged_in_user):
     """
     Displays the user's cart.
-    Shows a message if the cart is empty.
+    Shows a message if the cart is empty and offers checkout if items are in the cart.
     
     Args:
         logged_in_user (str): The username of the logged-in user.
@@ -522,23 +552,24 @@ def view_cart(logged_in_user):
     """
     user_id = User.get_user_id(logged_in_user)
     cart = Cart(user_id)
-
     cart_items = cart.view_cart()
 
     if cart_items:
         cart_details = "\n".join([f"{item[0]} - ${item[1]} (x{item[2]})" for item in cart_items])
-        button_dialog(
+        action = button_dialog(
             title="Cart Items",
             text=f"Your cart:\n\n{cart_details}",
-            buttons=[("OK", True)]
+            buttons=[("Checkout", "checkout"), ("Back", True)]
         ).run()
+
+        if action == "checkout":
+            checkout(logged_in_user)
     else:
         button_dialog(
             title="Cart is Empty",
             text="Your cart is currently empty.",
             buttons=[("OK", True)]
         ).run()
-
 
 def checkout(logged_in_user):
     """
@@ -578,8 +609,8 @@ def checkout(logged_in_user):
 
 def view_orders(logged_in_user):
     """
-    Displays a list of the user's orders with the product name, seller name, and status.
-    Allows viewing more details by selecting an order.
+    Displays a list of the user's orders with the product name and status.
+    Allows viewing more details and canceling the order if it's in 'pending' status.
 
     Args:
         logged_in_user (str): The username of the logged-in user.
@@ -588,10 +619,11 @@ def view_orders(logged_in_user):
         None
     """
     user_id = User.get_user_id(logged_in_user)
-    orders = Order.get_orders_by_user(user_id)
+    order = Order(user_id)  
+    orders = order.get_orders_by_user(user_id)  
 
     if orders:
-        order_list = [(str(order[0]), f"Order ID: {order[0]} - Product: {order[4]} - Seller: {order[5]} - Status: {order[3]}") for order in orders]
+        order_list = [(str(order[0]), f"Order ID: {order[0]} - Status: {order[3]}") for order in orders]
 
         order_selected = radiolist_dialog(
             title="Order List",
@@ -601,24 +633,101 @@ def view_orders(logged_in_user):
         ).run()
 
         if order_selected is not None:
-            selected_order = next(order for order in orders if str(order[0]) == order_selected)
+            selected_order = next(o for o in orders if str(o[0]) == order_selected)
             order_details = (f"Order ID: {selected_order[0]}\n"
                              f"Details: {selected_order[1]}\n"
                              f"Total: ${selected_order[2]}\n"
-                             f"Product: {selected_order[4]}\n"
-                             f"Seller: {selected_order[5]}\n"
                              f"Status: {selected_order[3]}")
 
-            button_dialog(
+            buttons = [("Back", True)]
+            
+            if selected_order[3] == "pending":
+                buttons.append(("Cancel Order", "cancel"))
+
+            action = button_dialog(
                 title="Order Details",
                 text=order_details,
-                buttons=[("Back", True)]  
+                buttons=buttons
             ).run()
+
+            if action == "cancel":
+                confirmation = yes_no_dialog(
+                    title="Cancel Order",
+                    text="Are you sure you want to cancel this order?"
+                ).run()
+
+                if confirmation:
+                    order.cancel_order(selected_order[0]) 
+                    button_dialog(
+                        title="Success",
+                        text="Your order has been canceled.",
+                        buttons=[("OK", True)]
+                    ).run()
 
     else:
         button_dialog(
             title="No Orders",
             text="You have no orders.",
+            buttons=[("OK", True)]
+        ).run()
+
+
+def view_my_products(logged_in_user):
+    """
+    Displays the list of products created by the logged-in user.
+    Allows the user to create, update, or delete their products.
+
+    Args:
+        logged_in_user (str): The username of the logged-in user.
+
+    Returns:
+        None
+    """
+    user_id = User.get_user_id(logged_in_user)
+    products = Product.get_products_by_user_id(user_id)
+
+    options = [("create_product", "Create New Product")]
+
+    if products:
+        product_list = [(str(p[0]), HTML(f'{p[1]} - ${p[2]} (Quantity: {p[6]})')) for p in products]
+        options.extend(product_list)
+
+    product_selected = radiolist_dialog(
+        title="My Products",
+        text="Your products:\n\nSelect a product to view details or create a new product:",
+        values=options,
+        cancel_text="Back"
+    ).run()
+
+    if product_selected == "create_product":
+        create_product(logged_in_user)
+    elif product_selected is not None:
+        product = Product.get_product_by_id(int(product_selected))
+        if product:
+            ascii_art = product[5] if product[5] is not None else "No ASCII art available."
+            quantity = product[6]
+
+            product_details = (f"Name: {product[1]}\n"
+                               f"Price: ${product[2]}\n"
+                               f"Description: {product[3]}\n"
+                               f"Quantity: {quantity}\n")
+
+            action = button_dialog(
+                title="Product Details",
+                text=f"{product_details}\n\nWhat would you like to do?",
+                buttons=[("Update", "update"), ("Delete", "delete"), ("View Image", "view_image"), ("Back", None)]
+            ).run()
+
+            if action == "update":
+                update_product(int(product_selected))
+            elif action == "delete":
+                delete_product(int(product_selected))
+            elif action == "view_image":
+                view_ascii_art(ascii_art)
+    else:
+        button_dialog(
+            title="No Products",
+            text="You have not created any products.",
             buttons=[("OK", True)]
         ).run()
 
@@ -651,7 +760,7 @@ def main():
         elif action == 'delete_account' and logged_in_user:
             logged_in_user = delete_account(logged_in_user)
 
-        elif action == 'view_products' and logged_in_user:
+        elif action == 'market_products' and logged_in_user:
             view_products(logged_in_user)  
 
         elif action == 'create_product' and logged_in_user:
@@ -665,7 +774,13 @@ def main():
         
         elif action == 'view_orders' and logged_in_user:
             view_orders(logged_in_user)
+        
+        elif action == 'manage_profile' and logged_in_user:
+            manage_profile(logged_in_user)
 
+        elif action == 'my_products' and logged_in_user:
+            view_my_products(logged_in_user)
+        
         elif action == 'logout' and logged_in_user:
             button_dialog(
                 title="Logout",

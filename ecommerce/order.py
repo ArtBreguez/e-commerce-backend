@@ -54,7 +54,6 @@ class Order:
         ''', (user_id,))
         return cursor.fetchall()
 
-    @staticmethod
     def update_order_status(self, order_id, new_status):
         """
         Update the status of a specific order.
@@ -96,3 +95,21 @@ class Order:
             WHERE o.id = ?
         ''', (order_id,))
         return cursor.fetchone()
+
+    def cancel_order(self, order_id):
+        """
+        Cancel an order by changing its status to 'canceled' if it is 'pending'.
+
+        Args:
+            order_id (int): The ID of the order to cancel.
+
+        Returns:
+            None
+        """
+        cursor = self.db.cursor
+        cursor.execute('''
+            UPDATE orders
+            SET status = 'canceled'
+            WHERE id = ? AND user_id = ? AND status = 'pending'
+        ''', (order_id, self.user_id))
+        self.db.connection.commit()

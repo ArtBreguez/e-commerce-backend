@@ -15,7 +15,6 @@ class TestOrderModel(unittest.TestCase):
                                (self.user_id, "testuser", "hashed_password"))
         self.db.connection.commit()
 
-        # Create a product and get its ID
         Product.create_product("Test Product", 50.00, "A test product description", self.user_id, db=self.db, quantity=10)
         self.db.cursor.execute("SELECT id FROM products WHERE name = ?", ("Test Product",))
         self.product_id = self.db.cursor.fetchone()[0]
@@ -80,10 +79,26 @@ class TestOrderModel(unittest.TestCase):
         self.db.cursor.execute("SELECT id FROM orders WHERE user_id = ?", (self.user_id,))
         order_id = self.db.cursor.fetchone()[0]
 
-        order.update_order_status(self, order_id, "shipped")
+        order.update_order_status(order_id, "shipped")
 
         updated_order = Order.get_order_by_id(order_id, db=self.db)
         self.assertEqual(updated_order[3], "shipped")
+
+
+    def test_cancel_order(self):
+        """Test canceling an order with 'pending' status."""
+        order_details = "Test Product - $50 (x2)"
+        total = 100.00
+        order = Order(self.user_id, db=self.db)
+        order.create_order(order_details, total)
+
+        self.db.cursor.execute("SELECT id FROM orders WHERE user_id = ?", (self.user_id,))
+        order_id = self.db.cursor.fetchone()[0]
+
+        order.cancel_order(order_id)
+
+        canceled_order = Order.get_order_by_id(order_id, db=self.db)
+        self.assertEqual(canceled_order[3], "canceled")
 
 
 if __name__ == '__main__':

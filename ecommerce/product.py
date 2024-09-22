@@ -161,3 +161,20 @@ class Product:
         cursor = db.cursor
         cursor.execute('DELETE FROM products WHERE id = ?', (product_id,))
         db.connection.commit()
+
+    @staticmethod
+    def get_products_by_user_id(user_id, db=None):
+        """
+        Retrieve all products created by the current user.
+
+        Returns:
+            list: A list of tuples containing product details.
+        """
+        db = db or get_db()
+        cursor = db.cursor
+        cursor.execute('''
+            SELECT *
+            FROM products
+            WHERE user_id = ?
+        ''', (user_id,))
+        return cursor.fetchall()
