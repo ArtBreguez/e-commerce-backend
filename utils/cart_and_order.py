@@ -6,7 +6,7 @@ from prompt_toolkit.shortcuts import yes_no_dialog, button_dialog, radiolist_dia
 def view_cart(logged_in_user):
     """
     Displays the user's cart.
-    Shows a message if the cart is empty and offers checkout if items are in the cart.
+    Shows a message if the cart is empty and offers checkout or removing items from the cart.
     
     Args:
         logged_in_user (str): The username of the logged-in user.
@@ -19,15 +19,36 @@ def view_cart(logged_in_user):
     cart_items = cart.view_cart()
 
     if cart_items:
-        cart_details = "\n".join([f"{item[0]} - ${item[1]} (x{item[2]})" for item in cart_items])
-        action = button_dialog(
+        product_list = [(str(i), f"{item[0]} - ${item[1]} (x{item[2]})") for i, item in enumerate(cart_items)]
+        product_list.append(("checkout", "Proceed to Checkout"))
+
+        action = radiolist_dialog(
             title="Cart Items",
-            text=f"Your cart:\n\n{cart_details}",
-            buttons=[("Checkout", "checkout"), ("Back", True)]
+            text="Select an item to remove or proceed to checkout:",
+            values=product_list,
+            cancel_text="Back"
         ).run()
 
         if action == "checkout":
             checkout(logged_in_user)
+        elif action is not None:
+            selected_index = int(action)
+            selected_item = cart_items[selected_index]
+
+            confirmation = yes_no_dialog(
+                title="Confirm Removal",
+                text=f"Are you sure you want to remove {selected_item[0]} from your cart?"
+            ).run()
+
+            if confirmation:
+                cart.remove_product(selected_index)
+                button_dialog(
+                    title="Success",
+                    text=f"{selected_item[0]} removed from your cart.",
+                    buttons=[("OK", True)]
+                ).run()
+
+                view_cart(logged_in_user)
     else:
         button_dialog(
             title="Cart is Empty",
@@ -54,7 +75,7 @@ def checkout(logged_in_user):
         total = sum([item[1] * item[2] for item in cart_items])
 
         order = Order(user_id)
-        order.create_order(order_details, total)  
+        order.create_order(order_details, total)
 
         cart.clear_cart()
 
@@ -70,7 +91,6 @@ def checkout(logged_in_user):
             buttons=[("OK", True)]
         ).run()
 
-
 def view_orders(logged_in_user):
     """
     Displays a list of the user's orders with the product name and status.
@@ -83,8 +103,8 @@ def view_orders(logged_in_user):
         None
     """
     user_id = User.get_user_id(logged_in_user)
-    order = Order(user_id)  
-    orders = order.get_orders_by_user(user_id)  
+    order = Order(user_id)
+    orders = order.get_orders_by_user(user_id)
 
     if orders:
         order_list = [(str(order[0]), f"Order ID: {order[0]} - Status: {order[3]}") for order in orders]
@@ -92,8 +112,8 @@ def view_orders(logged_in_user):
         order_selected = radiolist_dialog(
             title="Order List",
             text="Select an order to view details:",
-            values=order_list,  
-            cancel_text="Back" 
+            values=order_list,
+            cancel_text="Back"
         ).run()
 
         if order_selected is not None:
@@ -104,7 +124,7 @@ def view_orders(logged_in_user):
                              f"Status: {selected_order[3]}")
 
             buttons = [("Back", True)]
-            
+
             if selected_order[3] == "pending":
                 buttons.append(("Cancel Order", "cancel"))
 
@@ -121,7 +141,7 @@ def view_orders(logged_in_user):
                 ).run()
 
                 if confirmation:
-                    order.cancel_order(selected_order[0]) 
+                    order.cancel_order(selected_order[0])
                     button_dialog(
                         title="Success",
                         text="Your order has been canceled.",
