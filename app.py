@@ -99,32 +99,51 @@ def register_user():
     Returns:
         None
     """
-    username = input_dialog(
-        title="Register",
-        text="Enter a username: "
-    ).run()
+    while True:
+        username = input_dialog(
+            title="Register",
+            text="Enter a username (min. 3 characters): "
+        ).run()
+
+        if username and len(username) < 3:
+            button_dialog(
+                title="Error",
+                text="Username must be at least 3 characters long.",
+                buttons=[("OK", True)]
+            ).run()
+        else:
+            break
     
-    if username:
+    while True:
         password = input_dialog(
             title="Register",
-            text="Enter a password: ",
+            text="Enter a password (min. 6 characters): ",
             password=True  
         ).run()
-        
-        if password:
-            try:
-                User.register(username, password)
-                button_dialog(
-                    title="Success",
-                    text=f"User {username} registered successfully!",
-                    buttons=[("OK", True)]
-                ).run()
-            except ValueError as e:
-                button_dialog(
-                    title="Error",
-                    text=str(e),
-                    buttons=[("OK", True)]
-                ).run()
+
+        if password and len(password) < 6:
+            button_dialog(
+                title="Error",
+                text="Password must be at least 6 characters long.",
+                buttons=[("OK", True)]
+            ).run()
+        else:
+            break
+
+    try:
+        User.register(username, password)
+        button_dialog(
+            title="Success",
+            text=f"User {username} registered successfully!",
+            buttons=[("OK", True)]
+        ).run()
+    except ValueError as e:
+        button_dialog(
+            title="Error",
+            text=str(e),
+            buttons=[("OK", True)]
+        ).run()
+
 
 def login_user():
     """
@@ -327,7 +346,7 @@ def view_products(logged_in_user):
             title="Product List",
             text="Available products:\n\nSelect a product to view details:",
             values=product_list,  
-            cancel_text="Back"  
+            cancel_text="Back"
         ).run()
 
         if product_selected is not None:  
@@ -340,7 +359,7 @@ def view_products(logged_in_user):
                 product_details = (f"Name: {product[1]}\n"
                                    f"Price: ${product[2]}\n"
                                    f"Description: {product[3]}\n"
-                                   f"Quantity: {quantity}\n"  
+                                   f"Quantity: {quantity}\n"
                                    f"Created by: {creator}")
 
                 if creator == logged_in_user:
@@ -357,46 +376,53 @@ def view_products(logged_in_user):
                     elif action == "view_image":
                         view_ascii_art(ascii_art)
                 else:
-                    action = button_dialog(
-                        title="Product Details",
-                        text=f"{product_details}",
-                        buttons=[("Add to Cart", "add_to_cart"), ("View Image", "view_image"), ("Back", True)]
-                    ).run()
+                    if quantity == 0:
+                        button_dialog(
+                            title="Product Unavailable",
+                            text="This product is currently unavailable.",
+                            buttons=[("OK", True)]
+                        ).run()
+                    else:
+                        action = button_dialog(
+                            title="Product Details",
+                            text=f"{product_details}",
+                            buttons=[("Add to Cart", "add_to_cart"), ("View Image", "view_image"), ("Back", True)]
+                        ).run()
 
-                    if action == "add_to_cart":
-                        while True:
-                            quantity_to_add = input_dialog(
-                                title="Add to Cart",
-                                text=f"Enter the quantity to add (Available: {quantity}): "
-                            ).run()
-
-                            try:
-                                quantity_to_add = int(quantity_to_add)
-                                if 0 < quantity_to_add <= quantity:
-                                    user_id = User.get_user_id(logged_in_user)
-                                    cart = Cart(user_id)
-                                    cart.add_product(int(product_selected), quantity_to_add)
-                                    button_dialog(
-                                        title="Success",
-                                        text=f"Added {quantity_to_add} of {product[1]} to the cart.",
-                                        buttons=[("OK", True)]
-                                    ).run()
-                                    break
-                                else:
-                                    button_dialog(
-                                        title="Error",
-                                        text="Invalid quantity. Please enter a number between 1 and the available quantity.",
-                                        buttons=[("OK", True)]
-                                    ).run()
-                            except ValueError:
-                                button_dialog(
-                                    title="Error",
-                                    text="Invalid input. Please enter a valid integer.",
-                                    buttons=[("OK", True)]
+                        if action == "add_to_cart":
+                            while True:
+                                quantity_to_add = input_dialog(
+                                    title="Add to Cart",
+                                    text=f"Enter the quantity to add (Available: {quantity}): "
                                 ).run()
 
-                    elif action == "view_image":
-                        view_ascii_art(ascii_art)
+                                try:
+                                    quantity_to_add = int(quantity_to_add)
+                                    if 0 < quantity_to_add <= quantity:
+                                        user_id = User.get_user_id(logged_in_user)
+                                        cart = Cart(user_id)
+                                        cart.add_product(int(product_selected), quantity_to_add)
+                                        button_dialog(
+                                            title="Success",
+                                            text=f"Added {quantity_to_add} of {product[1]} to the cart.",
+                                            buttons=[("OK", True)]
+                                        ).run()
+                                        break
+                                    else:
+                                        button_dialog(
+                                            title="Error",
+                                            text="Invalid quantity. Please enter a number between 1 and the available quantity.",
+                                            buttons=[("OK", True)]
+                                        ).run()
+                                except ValueError:
+                                    button_dialog(
+                                        title="Error",
+                                        text="Invalid input. Please enter a valid integer.",
+                                        buttons=[("OK", True)]
+                                    ).run()
+
+                        elif action == "view_image":
+                            view_ascii_art(ascii_art)
     else:
         button_dialog(
             title="No Products",
