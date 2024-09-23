@@ -54,23 +54,3 @@ def view_ascii_art(ascii_art):
     layout = Layout(dialog)
     app = Application(layout=layout, key_bindings=kb, full_screen=True, mouse_support=True)
     app.run()
-
-def display_confirmation_dialog(title, text):
-    return yes_no_dialog(
-        title=title,
-        text=text
-    ).run()
-
-def display_message_dialog(title, text):
-    button_dialog(
-        title=title,
-        text=text,
-        buttons=[("OK", True)]
-    ).run()
-
-def input_prompt(title, text, password=False):
-    return input_dialog(
-        title=title,
-        text=text,
-        password=password
-    ).run()

@@ -19,7 +19,7 @@ def view_cart(logged_in_user):
     cart_items = cart.view_cart()
 
     if cart_items:
-        product_list = [(str(i), f"{item[0]} - ${item[1]} (x{item[2]})") for i, item in enumerate(cart_items)]
+        product_list = [(str(item[3]), f"{item[0]} - ${item[1]} (x{item[2]})") for item in cart_items]
         product_list.append(("checkout", "Proceed to Checkout"))
 
         action = radiolist_dialog(
@@ -32,8 +32,9 @@ def view_cart(logged_in_user):
         if action == "checkout":
             checkout(logged_in_user)
         elif action is not None:
-            selected_index = int(action)
-            selected_item = cart_items[selected_index]
+            selected_product_id = int(action)
+
+            selected_item = next(item for item in cart_items if item[3] == selected_product_id)
 
             confirmation = yes_no_dialog(
                 title="Confirm Removal",
@@ -41,7 +42,7 @@ def view_cart(logged_in_user):
             ).run()
 
             if confirmation:
-                cart.remove_product(selected_index)
+                cart.remove_product(selected_product_id) 
                 button_dialog(
                     title="Success",
                     text=f"{selected_item[0]} removed from your cart.",
@@ -55,6 +56,7 @@ def view_cart(logged_in_user):
             text="Your cart is currently empty.",
             buttons=[("OK", True)]
         ).run()
+
 
 def checkout(logged_in_user):
     """

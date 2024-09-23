@@ -355,9 +355,3 @@ def view_my_products(logged_in_user):
                 delete_product(int(product_selected))
             elif action == "view_image":
                 view_ascii_art(ascii_art)
-    else:
-        button_dialog(
-            title="No Products",
-            text="You have not created any products.",
-            buttons=[("OK", True)]
-        ).run()

@@ -48,7 +48,7 @@ class Cart:
         """
         cursor = self.db.cursor
         cursor.execute('''
-            SELECT p.name, p.price, c.quantity
+            SELECT p.name, p.price, c.quantity, p.id
             FROM carts c
             JOIN products p ON c.product_id = p.id
             WHERE c.user_id = ?

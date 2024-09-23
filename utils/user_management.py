@@ -2,7 +2,7 @@ from ecommerce.user import User
 from ecommerce.product import Product
 from ecommerce.cart import Cart
 from ecommerce.order import Order
-from utils.ui import display_message_dialog, input_prompt, display_confirmation_dialog, input_dialog, radiolist_dialog, yes_no_dialog, button_dialog
+from utils.ui import  input_dialog, radiolist_dialog, yes_no_dialog, button_dialog
 
 def manage_profile(logged_in_user):
     """
@@ -32,8 +32,8 @@ def manage_profile(logged_in_user):
         return update_password(logged_in_user)
     elif action == "delete_account":
         return delete_account(logged_in_user)
-    elif action == "back":
-        return
+    else:
+        return logged_in_user
 
 
 def register_user():
