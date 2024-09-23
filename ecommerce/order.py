@@ -46,13 +46,13 @@ class Order:
         db = db or get_db()
         cursor = db.cursor
         cursor.execute('''
-            SELECT o.id, o.order_details, o.total, o.status, p.name AS product_name, u.username AS seller_name
+            SELECT o.id, o.order_details, o.total, o.status
             FROM orders o
-            JOIN products p ON p.id = o.user_id
-            JOIN users u ON u.id = p.user_id
             WHERE o.user_id = ?
         ''', (user_id,))
+        
         return cursor.fetchall()
+
 
     def update_order_status(self, order_id, new_status):
         """

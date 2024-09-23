@@ -86,6 +86,6 @@ def download_image_from_url(url):
         response.raise_for_status()
         return Image.open(BytesIO(response.content))
     except Exception as e:
-        print(f"Erro ao baixar a imagem: {e}")
+        print(f"Error downloading image: {e}")
         return None
 

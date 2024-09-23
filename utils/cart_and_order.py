@@ -105,7 +105,6 @@ def view_orders(logged_in_user):
     user_id = User.get_user_id(logged_in_user)
     order = Order(user_id)
     orders = order.get_orders_by_user(user_id)
-
     if orders:
         order_list = [(str(order[0]), f"Order ID: {order[0]} - Status: {order[3]}") for order in orders]
 

@@ -27,11 +27,11 @@ def manage_profile(logged_in_user):
     ).run()
 
     if action == "update_username":
-        update_username(logged_in_user)
+        return update_username(logged_in_user)
     elif action == "update_password":
-        update_password(logged_in_user)
+        return update_password(logged_in_user)
     elif action == "delete_account":
-        delete_account(logged_in_user)
+        return delete_account(logged_in_user)
     elif action == "back":
         return
 
@@ -196,7 +196,7 @@ def update_password(logged_in_user):
                 text="Password update canceled.",
                 buttons=[("OK", True)]
             ).run()
-            return
+            return logged_in_user
 
         if not current_password:
             button_dialog(
@@ -218,7 +218,7 @@ def update_password(logged_in_user):
                 text="Password update canceled.",
                 buttons=[("OK", True)]
             ).run()
-            return
+            return logged_in_user
 
         if len(new_password) < 6:
             button_dialog(
@@ -240,7 +240,7 @@ def update_password(logged_in_user):
                 text="Password update canceled.",
                 buttons=[("OK", True)]
             ).run()
-            return
+            return logged_in_user
 
         if new_password != confirm_password:
             button_dialog(
@@ -273,7 +273,7 @@ def delete_account(logged_in_user):
         logged_in_user (str): The username of the logged-in user.
 
     Returns:
-        None: Always returns None as the user account is deleted.
+        None: The user is logged out and returned to the login/registration screen.
     """
     confirmation = yes_no_dialog(
         title="Confirm Deletion",
@@ -284,7 +284,7 @@ def delete_account(logged_in_user):
         user_id = User.get_user_id(logged_in_user)
         Product.delete_products_by_user(user_id)  
 
-        Cart.clear_cart_by_user(user_id)  
+        Cart.clear_cart_by_user(user_id) 
 
         Order.delete_orders_by_user(user_id)  
 
@@ -296,5 +296,7 @@ def delete_account(logged_in_user):
             buttons=[("OK", True)]
         ).run()
 
-        raise SystemExit  
+        return None
+
     return logged_in_user
+
